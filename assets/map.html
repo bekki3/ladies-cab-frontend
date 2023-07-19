@@ -27,6 +27,7 @@
   <!-- Leaflet Control Geocoder JavaScript -->
   <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
 
+
   <link rel="stylesheet"
     href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
 
@@ -91,7 +92,7 @@
       height: 70%;
       background-color: #ffffff;
       z-index: 100;
-      /* display: none; */
+      display: none;
       padding-top: 10px;
     }
 
@@ -212,7 +213,7 @@
 
   <div id="map"></div>
 
-  <button id="locationButton" onclick="getLocation()">
+  <button id="locationButton" onclick="window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'command', command: 'getLocation' }))">
     <span class="material-symbols-outlined">location_on</span>
   </button>
 
@@ -245,7 +246,9 @@
     console.log = (message) => {
       window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'log', message }));
     };
-
+    window.addEventListener('message', event => {
+      console.log(event.data); // Wayne is coming!!!
+    });
     const initialCoords = [41.322093, 69.253952];
     const from = document.getElementById("fromInputField");
     const to = document.getElementById("toInputField");
@@ -263,12 +266,10 @@
       attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
     }).addTo(map);
 
-    function getLocation() {
-      navigator.geolocation.getCurrentPosition(function (res) {
-        const coords = [res.coords.latitude, res.coords.longitude];
-        marker.setLatLng(coords);
-        map.setView(coords, 16);
-      });
+    function goToLocation(lat, lng) {
+      console.log(`going to location ${lat},${lng}`);
+        marker.setLatLng([lat, lng]);
+        map.setView([lat, lng], 16);
     }
 
     map.on('move', function () {
@@ -319,9 +320,7 @@
     }
 
     function createRoute() {
-      //closeWindow();
       const createRouteBtn = document.getElementById("createRouteBtn");
-
       geocoder.geocode(from.value, function (fromResults) {
         geocoder.geocode(to.value, function (toResults) {
           if (fromResults.length === 0) {
@@ -331,7 +330,7 @@
           } else {
 
             if (createRouteBtn.innerText === "Show Directions") {
-              window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'command', command: 'deepLink', fromLatLng: fromLatLng, toLatLng: toLatLng}));
+              window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'command', command: 'deepLink', fromLatLng: fromLatLng, toLatLng: toLatLng }));
             } else {
               createRouteBtn.innerText = "Show Directions";
 
@@ -347,19 +346,16 @@
               }).addTo(map);
 
             }
-
-
           }
         });
       });
     }
 
-    function onMapClick(e) {
+
+    map.on('click', (e)=>{
       myWindow.style.display = "none";
       console.log(e.latlng);
-    }
-
-    map.on('click', onMapClick);
+    });
   </script>
 </body>
 
