@@ -59,7 +59,8 @@ const Map = () => {
             promise.then((coords)=> {
               const {latitude, longitude} = coords;
               console.log("data", latitude, longitude);
-              webViewRef.current.injectJavaScript(`goToLocation(${latitude},${longitude})`); 
+              const message = {type: "coords", data: coords}
+              webViewRef.current.injectJavaScript(`postMessageToWebview(${JSON.stringify(message)})`); 
             })
                      
           }

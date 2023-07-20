@@ -92,7 +92,7 @@
       height: 70%;
       background-color: #ffffff;
       z-index: 100;
-      display: none;
+      /* display: none; */
       padding-top: 10px;
     }
 
@@ -213,7 +213,8 @@
 
   <div id="map"></div>
 
-  <button id="locationButton" onclick="window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'command', command: 'getLocation' }))">
+  <button id="locationButton"
+    onclick="goToCurrentLocation()">
     <span class="material-symbols-outlined">location_on</span>
   </button>
 
@@ -222,11 +223,11 @@
   </button>
 
   <div id="myWindow">
-
     <div>
       <div id="fromInputContainer">
         <input type="text" id="fromInputField" placeholder="From where?">
-        <button id="fromSetLocation"><span class="material-symbols-outlined">map</span></button>
+        <button id="fromSetLocation"><span class="material-symbols-outlined"
+            onclick="setFromLocationToCurrentLocation()">location_on</span></button>
       </div>
       <div id="toInputContainer">
         <input type="text" id="toInputField" placeholder="To where?">
@@ -246,17 +247,20 @@
     console.log = (message) => {
       window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'log', message }));
     };
+
     window.addEventListener('message', event => {
-      console.log(event.data); // Wayne is coming!!!
+      console.log(event.data);
     });
+
     const initialCoords = [41.322093, 69.253952];
+    const createRouteBtn = document.getElementById("createRouteBtn");
     const from = document.getElementById("fromInputField");
     const to = document.getElementById("toInputField");
     const geocoder = new L.Control.Geocoder.Nominatim();
     const placeSuggestionContainer = document.getElementById("placeSuggestionContainer");
     const myWindow = document.getElementById("myWindow");
-    var fromLatLng;
-    var toLatLng;
+    let fromLatLng;
+    let toLatLng;
     const map = L.map('map', { zoomControl: false }).setView(initialCoords, 12);
 
     const marker = L.marker(initialCoords).addTo(map);;
@@ -266,10 +270,33 @@
       attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
     }).addTo(map);
 
+    function postMessageToWebview(message)
+    {
+      if(message.type === "coords"){
+        fromLatLng = {
+          lat: message.data.latitude, 
+          lng: message.data.longitude
+        };
+        goToLocation(message.data.latitude, message.data.longitude);
+        
+        console.log(fromLatLng);
+      }
+    }
+    
+    function goToCurrentLocation() {
+      window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'command', command: 'getLocation' }));
+    }
+
     function goToLocation(lat, lng) {
       console.log(`going to location ${lat},${lng}`);
-        marker.setLatLng([lat, lng]);
-        map.setView([lat, lng], 16);
+      marker.setLatLng([lat, lng]);
+      map.setView([lat, lng], 16);
+    }
+
+    function setFromLocationToCurrentLocation() {
+      console.log("Setting departure to current location");
+      window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'command', command: 'getLocation' }));
+      from.value = "My location";
     }
 
     map.on('move', function () {
@@ -320,7 +347,6 @@
     }
 
     function createRoute() {
-      const createRouteBtn = document.getElementById("createRouteBtn");
       geocoder.geocode(from.value, function (fromResults) {
         geocoder.geocode(to.value, function (toResults) {
           if (fromResults.length === 0) {
@@ -334,7 +360,11 @@
             } else {
               createRouteBtn.innerText = "Show Directions";
 
-              fromLatLng = fromResults[0].center;
+              if(from.value !== "My location"){
+                fromLatLng = fromResults[0].center;
+              }
+              console.log(JSON.stringify(fromLatLng));
+              console.log(typeof fromLatLng);
               toLatLng = toResults[0].center;
               var routingControl = L.Routing.control({
                 waypoints: [
@@ -351,9 +381,8 @@
       });
     }
 
-
-    map.on('click', (e)=>{
-      myWindow.style.display = "none";
+    map.on('click', (e) => {
+      closeWindow();
       console.log(e.latlng);
     });
   </script>
